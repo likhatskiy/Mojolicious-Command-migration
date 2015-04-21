@@ -1,0 +1,12 @@
+Changes
+lib/Mojolicious/Command/migration.pm
+LICENSE
+Makefile.PL
+MANIFEST
+README
+README.md
+t/001_base.t
+t/002_migrations.t
+t/mysql.conf
+t/sql/001_deploy.sql
+t/sql/001_upgrade.sql
