@@ -9,7 +9,7 @@ WriteMakefile(
 	ABSTRACT     => 'MySQL migration tool for Mojolicious',
 	PREREQ_PM    => {
 		'Test::Simple'  => 0.44,
-		'Mojolicious'   => 0,
+		'Mojolicious'   => 4.0,
 		'DBI'   => 0,
 		'Getopt::Long'   => 0,
 		'SQL::Translator'   => 0,

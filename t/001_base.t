@@ -56,14 +56,14 @@ CREATE TABLE `test` (
 
 like $source->{data}->[3], qr/SET foreign_key_checks=1/, 'right result';
 
-my $source = $migration->deployment_statements(
+$source = $migration->deployment_statements(
 	filename    => "t/sql/001_deploy.sql",
 );
 is @$source, 2, 'right output';
 like $source->[0], qr/^SET foreign_key_checks=0/, 'right result';
 like $source->[1], qr/^CREATE TABLE/, 'right result';
 
-my $source = $migration->deployment_statements(
+$source = $migration->deployment_statements(
 	filename    => "t/sql/001_upgrade.sql",
 );
 is @$source, 1, 'right output';

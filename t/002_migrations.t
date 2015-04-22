@@ -12,9 +12,10 @@ use File::Path qw(make_path remove_tree);
 use Mojo::Asset::File;
 use Data::Dumper;
  
-use_ok 'Mojolicious::Command::migration';
+plan skip_all => 'set TEST_ONLINE to enable this test'
+	unless $ENV{TEST_ONLINE};
 
-plan skip_all => 'set TEST_ONLINE to enable this test' unless $ENV{TEST_ONLINE};
+use_ok 'Mojolicious::Command::migration';
 
 my $config = do 't/mysql.conf';
 
