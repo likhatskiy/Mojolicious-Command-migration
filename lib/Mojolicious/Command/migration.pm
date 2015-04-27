@@ -16,7 +16,7 @@ use SQL::Translator::Diff;
 no warnings;
 use Data::Dumper;
 
-our $VERSION = 0.1;
+our $VERSION = 0.11;
 
 has description => 'MySQL migration tool';
 has usage       => sub { shift->extract_usage };
