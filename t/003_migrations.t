@@ -103,6 +103,8 @@ like $buffer, qr/Initialization/,
   'right output';
 like $buffer, qr/New schema version: 1/,
   'right output';
+like $buffer, qr/Deploy to 1/,
+  'right output';
 
 ok -s $migration->paths->{source_deploy}."/1/001_auto.yml", 'deploy _source exists';
 ok -s $migration->paths->{db_deploy    }."/1/001_auto.sql", 'deploy mysql exists';
@@ -119,7 +121,7 @@ $buffer = '';
 }
 like $buffer, qr/Schema version: 1/,
   'right status';
-like $buffer, qr/Database is not deployed/,
+like $buffer, qr/Deployed database is 1/,
   'right status';
 
 $buffer = '';
@@ -166,11 +168,11 @@ $buffer = '';
 }
 like $buffer, qr/Schema version: 2/,
   'right status';
-like $buffer, qr/Database is not deployed/,
+like $buffer, qr/Deployed database is 2/,
   'right status';
 
 
-
+$migration->deployed({});
 $buffer = '';
 {
 	open my $handle, '>', \$buffer;
