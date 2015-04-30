@@ -1,4 +1,4 @@
-Revision history for Perl module Stark
+Revision history for Perl module Mojolicious::Command::migration
 
 0.1 2015-04-21
     - original version; created by ExtUtils::ModuleMaker 0.51
@@ -6,3 +6,5 @@ Revision history for Perl module Stark
 0.11 2015-04-23
     - fix tests
 
+0.12 2015-04-30
+    - force upgrade and downgrade. Deploy on prepare

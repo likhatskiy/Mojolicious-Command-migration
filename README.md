@@ -4,7 +4,7 @@ Mojolicious::Command::migration — MySQL migration tool for Mojolicious
 
 # VERSION
 
-version 0.1
+version 0.12
 
 # SYNOPSIS
 
@@ -48,7 +48,7 @@ Note: we create directories automatically
 ## status
 
     $ app migration status
-    Current version: 21
+    Schema version: 21
     Deployed database is 20
 
 Returns the state of the deployed database (if it is deployed) and the state of the current schema version. Sends this as a string to STDOUT
@@ -59,12 +59,13 @@ Makes deployment files for the current schema. If deployment files exist, will f
 
     # have changes
     $ app migration prepare
-    Current version: 21
+    Schema version: 21
     New version is 22
+    Deploy to 22
     
     # no changes
     $ app migration prepare
-    Current version: 21
+    Schema version: 21
     Nothing to upgrade. Exit
 
 ## install
@@ -75,18 +76,62 @@ If you try to install to a database that has already been installed (not empty),
 
     # last
     $ app migration install
-    Current version: 21
+    Schema version: 21
     Deploy database to 21
     
     # target version
     $ app migration install --to-version 10
-    Current version: 21
+    Schema version: 21
     Deploy database to 10
 
     # force install
     $ app migration install --force
-    Current version: 21
+    Schema version: 21
     Force deploy to 21
+
+## upgrade
+
+Use flag --force to set current database to schema version without changes database.
+
+    # last
+    $ app migration upgrade
+    Schema version: 21
+    Database version: 20
+    Upgrade to 21
+    
+    # target version
+    $ app migration upgrade --to-version 10
+    Schema version: 21
+    Database version: 8
+    Upgrade to 10
+
+    # force upgrade
+    $ app migration upgrade --force
+    Schema version: 21
+    Database version: 8
+    Force upgrade to 21
+
+## downgrade
+
+Use flag --force to set current database to schema version without changes database.
+
+    # last
+    $ app migration downgrade
+    Schema version: 21
+    Database version: 20
+    Downgrade to 21
+    
+    # target version
+    $ app migration downgrade --to-version 10
+    Schema version: 21
+    Database version: 8
+    Downgrade to 10
+
+    # force downgrade
+    $ app migration downgrade --force
+    Schema version: 21
+    Database version: 8
+    Force downgrade to 21
 
 # SOURCE REPOSITORY
 

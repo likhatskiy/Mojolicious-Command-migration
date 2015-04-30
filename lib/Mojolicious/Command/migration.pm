@@ -16,7 +16,7 @@ use SQL::Translator::Diff;
 no warnings;
 use Data::Dumper;
 
-our $VERSION = 0.11;
+our $VERSION = 0.12;
 
 has description => 'MySQL migration tool';
 has usage       => sub { shift->extract_usage };
@@ -166,6 +166,13 @@ sub upgrade {
 
 	say "Database version: ".$self->deployed->{version};
 
+	if ($self->params->{force}) {
+		say "Force upgrade to $to_version";
+		$self->deployed->{version} = $to_version;
+		$self->save_deployed;
+		return;
+	}
+
 	my $current = $self->deployed->{version};
 	for my $upgrade ($self->deployed->{version} + 1 .. $to_version) {
 		next unless -s "$paths->{db_upgrade}/$current-$upgrade/001_auto.sql";
@@ -233,6 +240,13 @@ sub downgrade {
 	}
 
 	say "Database version: ".$self->deployed->{version};
+
+	if ($self->params->{force}) {
+		say "Force downgrade to $to_version";
+		$self->deployed->{version} = $to_version;
+		$self->save_deployed;
+		return;
+	}
 
 	my $current = $self->deployed->{version};
 	for my $downgrade ($self->deployed->{version} - 1 .. $to_version) {
@@ -345,9 +359,9 @@ sub prepare {
 
 			remove_tree "$paths->{source_deploy}/$new_version";
 			remove_tree "$paths->{db_deploy}/$new_version";
-		} else {
-			say "New schema version: $new_version";
 
+			return;
+		} else {
 			my $error = $self->save_migration(
 				path => "$paths->{db_upgrade}/$last_version-$new_version/001_auto.sql",
 				data => $diff,
@@ -369,9 +383,13 @@ sub prepare {
 			);
 			die "Cant create MySQL downgrade: $error" if $error;
 		}
-	} else {
-		say "New schema version: $new_version";
 	}
+
+	say "New schema version: $new_version";
+	say "Deploy to $new_version";
+	$self->deployed->{version} = $new_version;
+	$self->save_deployed;
+
 	say "Done";
 }
 
@@ -494,7 +512,7 @@ Mojolicious::Command::migration — MySQL migration tool for Mojolicious
 
 =head1 VERSION
 
-version 0.1
+version 0.12
 
 =head1 SYNOPSIS
  
@@ -538,7 +556,7 @@ Note: we create directories automatically
 =head2 status
  
   $ app migration status
-  Current version: 21
+  Schema version: 21
   Deployed database is 20
 
 Returns the state of the deployed database (if it is deployed) and the state of the current schema version. Sends this as a string to STDOUT
@@ -549,12 +567,13 @@ Makes deployment files for the current schema. If deployment files exist, will f
 
   # have changes
   $ app migration prepare
-  Current version: 21
+  Schema version: 21
   New version is 22
+  Deploy to 22
   
   # no changes
   $ app migration prepare
-  Current version: 21
+  Schema version: 21
   Nothing to upgrade. Exit
 
 =head2 install
@@ -565,18 +584,64 @@ If you try to install to a database that has already been installed (not empty),
 
   # last
   $ app migration install
-  Current version: 21
+  Schema version: 21
   Deploy database to 21
   
   # target version
   $ app migration install --to-version 10
-  Current version: 21
+  Schema version: 21
   Deploy database to 10
 
   # force install
   $ app migration install --force
-  Current version: 21
+  Schema version: 21
   Force deploy to 21
+
+=head2 upgrade
+
+
+Use flag --force to set current database to schema version without changes database.
+
+  # last
+  $ app migration upgrade
+  Schema version: 21
+  Database version: 20
+  Upgrade to 21
+  
+  # target version
+  $ app migration upgrade --to-version 10
+  Schema version: 21
+  Database version: 8
+  Upgrade to 10
+
+  # force upgrade
+  $ app migration upgrade --force
+  Schema version: 21
+  Database version: 8
+  Force upgrade to 21
+
+=head2 downgrade
+
+
+Use flag --force to set current database to schema version without changes database.
+
+  # last
+  $ app migration downgrade
+  Schema version: 21
+  Database version: 20
+  Downgrade to 21
+  
+  # target version
+  $ app migration downgrade --to-version 10
+  Schema version: 21
+  Database version: 8
+  Downgrade to 10
+
+  # force downgrade
+  $ app migration downgrade --force
+  Schema version: 21
+  Database version: 8
+  Force downgrade to 21
 
 =head1 SOURCE REPOSITORY
 
