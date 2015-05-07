@@ -16,7 +16,7 @@ use SQL::Translator::Diff;
 no warnings;
 use Data::Dumper;
 
-our $VERSION = 0.12;
+our $VERSION = 0.13;
 
 has description => 'MySQL migration tool';
 has usage       => sub { shift->extract_usage };
@@ -175,22 +175,28 @@ sub upgrade {
 
 	my $current = $self->deployed->{version};
 	for my $upgrade ($self->deployed->{version} + 1 .. $to_version) {
-		next unless -s "$paths->{db_upgrade}/$current-$upgrade/001_auto.sql";
-
 		say "Upgrade to $upgrade";
-		my $source = $self->deployment_statements(
-			filename    => "$paths->{db_upgrade}/$current-$upgrade/001_auto.sql",
-		);
+		my @files = sort {$a cmp $b} glob("$paths->{db_upgrade}/$current-$upgrade/*");
+		say "Upgrade is empty" unless @files;
 
-		for my $line(@$source) {
-			next unless $line;
+		for my $file (@files) {
+			next unless -s $file;
+			say "Exec file: $file";
 
-			say "Exec SQL: $line";
+			my $source = $self->deployment_statements(
+				filename => $file,
+			);
 
-			eval { $self->db->do($line) };
+			for my $line(@$source) {
+				next unless $line;
 
-			if ($@) {
-				die "SQL failed: $@";
+				say "Exec SQL: $line";
+
+				eval { $self->db->do($line) };
+
+				if ($@) {
+					die "SQL failed: $@";
+				}
 			}
 		}
 
@@ -250,22 +256,28 @@ sub downgrade {
 
 	my $current = $self->deployed->{version};
 	for my $downgrade ($self->deployed->{version} - 1 .. $to_version) {
-		next unless -s "$paths->{db_downgrade}/$current-$downgrade/001_auto.sql";
-
 		say "Downgrade to $downgrade";
-		my $source = $self->deployment_statements(
-			filename    => "$paths->{db_downgrade}/$current-$downgrade/001_auto.sql",
-		);
+		my @files = sort {$a cmp $b} glob("$paths->{db_downgrade}/$current-$downgrade/*");
+		say "Downgrade is empty" unless @files;
 
-		for my $line(@$source) {
-			next unless $line;
+		for my $file (@files) {
+			next unless -s $file;
+			say "Exec file: $file";
 
-			say "Exec SQL: $line";
+			my $source = $self->deployment_statements(
+				filename    => $file,
+			);
 
-			eval { $self->db->do($line) };
+			for my $line(@$source) {
+				next unless $line;
 
-			if ($@) {
-				die "SQL failed: $@";
+				say "Exec SQL: $line";
+
+				eval { $self->db->do($line) };
+
+				if ($@) {
+					die "SQL failed: $@";
+				}
 			}
 		}
 
@@ -642,6 +654,19 @@ Use flag --force to set current database to schema version without changes datab
   Schema version: 21
   Database version: 8
   Force downgrade to 21
+
+=head1 Custom upgrade and downgrade
+
+You can customize upgrade and downgrade by adding additional SQL scripts to path of action. All scripts will be executed in alphabetical order.
+
+  # share/migration/MySQL/upgrade/10-11/001_auto.sql is automatic
+  # share/migration/MySQL/upgrade/10-11/002_some_script.sql is additional sctipt
+  $ app migration upgrade
+  Schema version: 11
+  Database version: 10
+  Upgrade to 11
+  Exec file: share/migrations/MySQL/upgrade/10-11/001_auto.sql
+  Exec file: share/migrations/MySQL/upgrade/10-11/002_some_script.sql
 
 =head1 SOURCE REPOSITORY
 

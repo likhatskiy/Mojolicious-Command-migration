@@ -8,3 +8,6 @@ Revision history for Perl module Mojolicious::Command::migration
 
 0.12 2015-04-30
     - force upgrade and downgrade. Deploy on prepare
+
+0.13 2015-05-07
+    - ability to customize upgrade and downgrade

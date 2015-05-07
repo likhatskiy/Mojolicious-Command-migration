@@ -9,6 +9,7 @@ use Test::More;
 use lib 'lib';
 use DBI;
 use File::Path qw(make_path remove_tree);
+use File::Copy "cp";
 use Mojo::Asset::File;
 use Data::Dumper;
  
@@ -291,6 +292,7 @@ is $migration->deployed->{version}, 1, 'right deployed';
 
 $buffer = '';
 my $current = $migration->deployed->{version};
+cp "t/sql/002_upgrade_extra_data.sql", $migration->paths->{db_upgrade}."/$current-2/";
 {
 	open my $handle, '>', \$buffer;
 	local *STDOUT = $handle;
@@ -307,11 +309,18 @@ for my $upgrade ($current + 1 .. $migration->get_last_version) {
 
 	like $buffer, qr/Upgrade to $upgrade/,
 	  'right upgrade to XXX';
+	like $buffer, qr/Exec file: .*001_auto\.sql/,
+	  'right exec file';
+	like $buffer, qr/Exec file: .*002_upgrade_extra_data\.sql/,
+	  'right exec file';
 
 	$current++;
 }
+is $db->selectall_arrayref('select count(*) cnt from test', { Slice => {} })->[0]->{cnt}, 3, 'right extra upgrade';
 
 $buffer = '';
+cp "t/sql/003_downgrade_extra.sql", $migration->paths->{db_downgrade}."/2-1/";
+
 {
 	open my $handle, '>', \$buffer;
 	local *STDOUT = $handle;
@@ -329,9 +338,14 @@ for my $downgrade ($current - 1) {
 
 	like $buffer, qr/Downgrade to $downgrade/,
 	  'right downgrade to XXX';
+	like $buffer, qr/Exec file: .*001_auto\.sql/,
+	  'right exec file';
+	like $buffer, qr/Exec file: .*003_downgrade_extra\.sql/,
+	  'right exec file';
 
 	$current--;
 }
+is $db->selectall_arrayref('select count(*) cnt from test', { Slice => {} })->[0]->{cnt}, 0, 'right extra downgrade';
 
 $buffer = '';
 {

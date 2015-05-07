@@ -139,6 +139,19 @@ Use flag --force to set current database to schema version without changes datab
   Database version: 8
   Force downgrade to 21
 
+=head1 Custom upgrade and downgrade
+
+You can customize upgrade and downgrade by adding additional SQL scripts to path of action. All scripts will be executed in alphabetical order.
+
+  # share/migration/MySQL/upgrade/10-11/001_auto.sql is automatic
+  # share/migration/MySQL/upgrade/10-11/002_some_script.sql is additional sctipt
+  $ app migration upgrade
+  Schema version: 11
+  Database version: 10
+  Upgrade to 11
+  Exec file: share/migrations/MySQL/upgrade/10-11/001_auto.sql
+  Exec file: share/migrations/MySQL/upgrade/10-11/002_some_script.sql
+
 =head1 SOURCE REPOSITORY
 
 L<https://github.com/likhatskiy/Mojolicious-Command-migration>

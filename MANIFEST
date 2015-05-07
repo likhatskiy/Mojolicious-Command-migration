@@ -11,3 +11,5 @@ t/003_migrations.t
 t/mysql.conf
 t/sql/001_deploy.sql
 t/sql/001_upgrade.sql
+t/sql/002_upgrade_extra_data.sql
+t/sql/003_downgrade_extra.sql
