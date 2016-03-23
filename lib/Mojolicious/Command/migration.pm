@@ -16,7 +16,7 @@ use SQL::Translator::Diff;
 no warnings;
 use Data::Dumper;
 
-our $VERSION = 0.13;
+our $VERSION = 0.14;
 
 has description => 'MySQL migration tool';
 has usage       => sub { shift->extract_usage };
@@ -176,6 +176,7 @@ sub upgrade {
 	my $current = $self->deployed->{version};
 	for my $upgrade ($self->deployed->{version} + 1 .. $to_version) {
 		say "Upgrade to $upgrade";
+		say "+++++++++ "."$paths->{db_upgrade}/$current-$upgrade/*";
 		my @files = sort {$a cmp $b} glob("$paths->{db_upgrade}/$current-$upgrade/*");
 		say "Upgrade is empty" unless @files;
 
@@ -202,6 +203,7 @@ sub upgrade {
 
 		$self->deployed->{version} = $upgrade;
 		$self->save_deployed;
+		++$current;
 	}
 }
 
@@ -524,7 +526,7 @@ Mojolicious::Command::migration — MySQL migration tool for Mojolicious
 
 =head1 VERSION
 
-version 0.12
+version 0.14
 
 =head1 SYNOPSIS
  

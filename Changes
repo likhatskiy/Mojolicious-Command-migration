@@ -11,3 +11,6 @@ Revision history for Perl module Mojolicious::Command::migration
 
 0.13 2015-05-07
     - ability to customize upgrade and downgrade
+
+0.14 2016-03-24
+    - BUG: upgrade to several versions fail

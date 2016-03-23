@@ -358,4 +358,67 @@ like $buffer, qr/Schema version: 2/,
 like $buffer, qr/Nothing to downgrade/,
   'right output';
 
+$buffer = '';
+{
+	open my $handle, '>', \$buffer;
+	local *STDOUT = $handle;
+	$migration->run('upgrade');
+}
+
+$db->do('alter table test add name2 varchar(255) not null default ""');
+
+$buffer = '';
+{
+	open my $handle, '>', \$buffer;
+	local *STDOUT = $handle;
+	$migration->run('prepare');
+}
+like $buffer, qr/Schema version: 2/,
+  'right output';
+like $buffer, qr/New schema version: 3/,
+  'right output';
+ok -s $migration->paths->{source_deploy}."/3/001_auto.yml", 'deploy _source exists';
+ok -s $migration->paths->{db_deploy    }."/3/001_auto.sql", 'deploy mysql exists';
+ok -s $migration->paths->{db_upgrade   }."/2-3/001_auto.sql", 'upgrade mysql exists';
+ok -s $migration->paths->{db_downgrade }."/3-2/001_auto.sql", 'downgrade mysql exists';
+
+$file = Mojo::Asset::File->new(path => $migration->paths->{db_upgrade}."/2-3/001_auto.sql")->slurp;
+like $file, qr/ALTER TABLE test ADD COLUMN name2 varchar\(255\) NOT NULL DEFAULT ''/,
+  'right mysql upgrade';
+
+$file = Mojo::Asset::File->new(path => $migration->paths->{db_downgrade}."/3-2/001_auto.sql")->slurp;
+like $file, qr/ALTER TABLE test DROP COLUMN name2/,
+  'right mysql downgrade';
+
+unlink $migration->paths->{deploy_status} if -e $migration->paths->{deploy_status};
+$migration->deployed({});
+
+$db->do('drop table if exists test');
+
+$buffer = '';
+{
+	open my $handle, '>', \$buffer;
+	local *STDOUT = $handle;
+	$migration->run('install', '--to-version', 1);
+}
+
+$buffer = '';
+{
+	open my $handle, '>', \$buffer;
+	local *STDOUT = $handle;
+	$migration->run('upgrade');
+}
+like $buffer, qr/Schema version: 3/,
+  'right output';
+like $buffer, qr/Database version: 1/,
+  'right output';
+like $buffer, qr/Upgrade to 2/,
+  'right output';
+like $buffer, qr/ALTER TABLE test ADD COLUMN name/,
+  'right output';
+like $buffer, qr/Upgrade to 3/,
+  'right output';
+like $buffer, qr/ALTER TABLE test ADD COLUMN name2/,
+  'right output';
+
 done_testing;
