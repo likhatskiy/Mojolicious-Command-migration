@@ -16,7 +16,7 @@ use SQL::Translator::Diff;
 no warnings;
 use Data::Dumper;
 
-our $VERSION = 0.14;
+our $VERSION = 0.15;
 
 has description => 'MySQL migration tool';
 has usage       => sub { shift->extract_usage };
@@ -359,6 +359,12 @@ sub prepare {
 			filename => "$paths->{source_deploy}/$last_version/001_auto.yml",
 		)->{schema};
 
+		for ($source_schema->get_tables) {
+			$_->{options} = [grep {!$_->{'AUTO_INCREMENT'}} @{ $_->{options} }];
+		}
+		for ($target_schema->get_tables) {
+			$_->{options} = [grep {!$_->{'AUTO_INCREMENT'}} @{ $_->{options} }];
+		}
 		my $diff = SQL::Translator::Diff->new({
 			output_db               => 'MySQL',
 			source_schema           => $source_schema,
@@ -366,7 +372,28 @@ sub prepare {
 			ignore_index_names      => 1,
 			ignore_constraint_names => 1,
 			caseopt                 => 1
-		})->compute_differences->produce_diff_sql;
+		})->compute_differences;
+
+		my $h = {};
+		for my $table(keys %{ $diff->{table_diff_hash} || {} }) {
+			for my $field (@{$diff->{table_diff_hash}->{$table}->{fields_to_create}}) {
+				$h->{$table}->{$field->name} = [grep {$_->order == $field->{order} - 1} $field->table->get_fields]->[0]->{name};
+			}
+		}
+		$diff = $diff->produce_diff_sql;
+
+		if (%$h) {
+			my @res = split "\n\n", $diff;
+			for my $s (@res) {
+				my ($t, $a) = $s =~ /ALTER TABLE ([^\s]+) ([^;]+)/;
+
+				for ($a =~ /ADD COLUMN ([^\s]+) /g) {
+					$s =~ s/ADD COLUMN $_ (.*)([\,\;])/ADD COLUMN $_ $1 AFTER $h->{$t}->{$_}$2/g;
+				}
+			}
+
+			$diff = join "\n\n", @res;
+		}
 
 		if ($diff =~ /No differences/) {
 			say "Nothing to upgrade. Exit";
@@ -526,7 +553,7 @@ Mojolicious::Command::migration — MySQL migration tool for Mojolicious
 
 =head1 VERSION
 
-version 0.14
+version 0.15
 
 =head1 SYNOPSIS
  

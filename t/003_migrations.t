@@ -92,7 +92,7 @@ like $buffer, qr/Initialization/,
 like $buffer, qr/Nothing to prepare/,
   'right output';
 
-$db->do('create table test (id int(11))');
+$db->do('create table test (id int(11) auto_increment, PRIMARY KEY (`id`))');
 
 $buffer = '';
 {
@@ -126,6 +126,7 @@ like $buffer, qr/Deployed database is 1/,
   'right status';
 
 $buffer = '';
+$db->do('insert into test set id=500');
 {
 	open my $handle, '>', \$buffer;
 	local *STDOUT = $handle;
@@ -134,9 +135,9 @@ $buffer = '';
 like $buffer, qr/Schema version: 1/,
   'right output';
 like $buffer, qr/Nothing to upgrade/,
-  'right output';
+  'right output Nothing to upgrade';
 
-$db->do('alter table test add name varchar(255) not null default ""');
+$db->do('alter table test add name varchar(255) not null default "" AFTER id');
 
 $buffer = '';
 {
@@ -148,13 +149,14 @@ like $buffer, qr/Schema version: 1/,
   'right output';
 like $buffer, qr/New schema version: 2/,
   'right output';
+
 ok -s $migration->paths->{source_deploy}."/2/001_auto.yml", 'deploy _source exists';
 ok -s $migration->paths->{db_deploy    }."/2/001_auto.sql", 'deploy mysql exists';
 ok -s $migration->paths->{db_upgrade   }."/1-2/001_auto.sql", 'upgrade mysql exists';
 ok -s $migration->paths->{db_downgrade }."/2-1/001_auto.sql", 'downgrade mysql exists';
 
 $file = Mojo::Asset::File->new(path => $migration->paths->{db_upgrade}."/1-2/001_auto.sql")->slurp;
-like $file, qr/ALTER TABLE test ADD COLUMN name varchar\(255\) NOT NULL DEFAULT ''/,
+like $file, qr/ALTER TABLE test ADD COLUMN name varchar\(255\) NOT NULL DEFAULT '' AFTER id/,
   'right mysql upgrade';
 
 $file = Mojo::Asset::File->new(path => $migration->paths->{db_downgrade}."/2-1/001_auto.sql")->slurp;
@@ -366,6 +368,7 @@ $buffer = '';
 }
 
 $db->do('alter table test add name2 varchar(255) not null default ""');
+$db->do('alter table test add name3 varchar(255) not null default ""');
 
 $buffer = '';
 {
@@ -383,11 +386,15 @@ ok -s $migration->paths->{db_upgrade   }."/2-3/001_auto.sql", 'upgrade mysql exi
 ok -s $migration->paths->{db_downgrade }."/3-2/001_auto.sql", 'downgrade mysql exists';
 
 $file = Mojo::Asset::File->new(path => $migration->paths->{db_upgrade}."/2-3/001_auto.sql")->slurp;
-like $file, qr/ALTER TABLE test ADD COLUMN name2 varchar\(255\) NOT NULL DEFAULT ''/,
+like $file, qr/ALTER TABLE test ADD COLUMN name2 varchar\(255\) NOT NULL DEFAULT '' AFTER name/,
+  'right mysql upgrade';
+like $file, qr/ADD COLUMN name3 varchar\(255\) NOT NULL DEFAULT '' AFTER name2/,
   'right mysql upgrade';
 
 $file = Mojo::Asset::File->new(path => $migration->paths->{db_downgrade}."/3-2/001_auto.sql")->slurp;
 like $file, qr/ALTER TABLE test DROP COLUMN name2/,
+  'right mysql downgrade';
+like $file, qr/DROP COLUMN name3/,
   'right mysql downgrade';
 
 unlink $migration->paths->{deploy_status} if -e $migration->paths->{deploy_status};
